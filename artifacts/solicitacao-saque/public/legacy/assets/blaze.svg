@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100" width="100%" height="100%">
+  <g transform="translate(10, 5)">
+    <!-- Red Flame Die Icon -->
+    <g transform="translate(10, 0)">
+      <!-- Flame Path -->
+      <path d="M 40 5 
+               C 42 18, 38 26, 26 40 
+               C 21 46, 17 52, 17 60 
+               C 17 73, 27 84, 40 84 
+               C 53 84, 63 73, 63 60 
+               C 63 52, 60 45, 55 38 
+               L 58 46 
+               C 54 28, 48 15, 40 5 Z" 
+            fill="#f12c4c" style="display:none;"/>
+      
+      <!-- Precision Flame Die Shape from Logo -->
+      <path d="M 40 6 
+               L 16 38 
+               C 9 47, 9 60, 16 69 
+               L 31 84 
+               C 36 89, 44 89, 49 84 
+               L 64 69 
+               C 71 60, 71 47, 64 38 
+               L 55 26 
+               L 48 35 
+               Z" 
+            fill="#f12c4c"/>
+      
+      <!-- 4 Dice Dots -->
+      <circle cx="40" cy="46" r="4.5" fill="#ffffff"/>
+      <circle cx="28" cy="58" r="4.5" fill="#ffffff"/>
+      <circle cx="52" cy="58" r="4.5" fill="#ffffff"/>
+      <circle cx="40" cy="70" r="4.5" fill="#ffffff"/>
+    </g>
+    
+    <!-- Blaze Text in Black Bold Geometric Sans -->
+    <text x="105" y="68" font-family="'Plus Jakarta Sans', 'Inter', 'Montserrat', Arial, sans-serif" font-size="64" font-weight="900" fill="#0b0e14" letter-spacing="-2px">blaze</text>
+  </g>
+</svg>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitações de Saque - Reembolso Oficial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Presell Layout Overrides */
+    body { background-color: #e2e8f0; background-image: none; padding: 20px 12px; margin: 0; min-height: 100vh; box-sizing: border-box; }
+    .main-wrapper { 
+      background: #ffffff; 
+      min-height: calc(100vh - 40px); 
+      max-width: 480px; 
+      margin: 0 auto; 
+      padding: 30px 24px; 
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    .header { margin-bottom: 30px; }
+    .presell-text {
+      color: #555;
+      font-size: 13.5px;
+      line-height: 1.5;
+      text-align: center;
+      margin-bottom: 25px;
+      font-weight: 500;
+    }
+    .presell-instructions {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 18px;
+    }
+    .decisions-section {
+      color: #555;
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: left;
+      margin-top: 25px;
+    }
+    .decisions-section p { text-align: center; margin-bottom: 15px; }
+    .decisions-section ul { padding-left: 20px; }
+    .decisions-section li { margin-bottom: 12px; }
+    .decisions-section li b { color: #1155cc; }
+    .submit-btn {
+      border-radius: 30px !important;
+    }
+    .submit-btn.active-btn, .submit-btn:not(:disabled) {
+      background: #1155cc !important;
+      box-shadow: 0 4px 15px rgba(17, 85, 204, 0.4) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-wrapper">
+    
+    <!-- Top Header (Nova Logo) -->
+    <header class="header">
+      <div class="brand-logo-container" style="width: 100%; max-width: 250px; margin: 0 auto; padding: 0;">
+        <img src="bragoralogo/bragora.png" onerror="this.onerror=null; this.src='assets/bragora.png'; if(!this.complete) this.src='bragora.png';" alt="Direito de Receber de Volta" class="recupera-logo" style="width: 100%; border-radius: 0; box-shadow: none; filter: none; mix-blend-mode: normal;" />
+      </div>
+    </header>
+
+    <main class="card-container" style="border: none; box-shadow: none; padding: 0; background: transparent;">
+      
+      <!-- Presell Text -->
+      <div class="presell-text">
+        Milhares de brasileiros perderam patrimônio em casas de apostas sem saber que a justiça está reconhecendo o direito à restituição. A Lei nº 14.790/2023, conhecida como a "Lei das Bets", estabeleceu regras claras para o setor e garantiu direitos aos apostadores como consumidores. Além disso, o Código de Defesa do Consumidor (Lei nº 8.078/1990) e o Código Civil (Lei nº 10.406/2002) têm sido aplicados pelos tribunais para anular contratos de apostas realizados por pessoas vulneráveis.
+      </div>
+
+      <div class="presell-instructions">
+        Digite seu CPF e seu e-mail para consultar seus valores a ressarcir no programa Recupera Brasil
+      </div>
+
+      <!-- Carousel Section (HIDDEN to prevent JS errors) -->
+      <div style="display: none;">
+        <div class="top-status-badge"><span class="live-pulse-dot"></span><span class="status-badge-text">Sistema de Reembolso Ativo • Conexão Criptografada</span></div>
+        <h2 class="card-title">Solicite a plataforma desejada :</h2>
+        <div class="platform-carousel">
+          <button type="button" class="nav-btn prev-btn" id="prevBtn"></button>
+          <div class="platform-display" id="platformDisplay">
+            <div class="platform-circle" id="platformCircle">
+              <div class="platform-content" id="platformContent"></div>
+            </div>
+          </div>
+          <button type="button" class="nav-btn next-btn" id="nextBtn"></button>
+        </div>
+        <div class="carousel-indicators" id="carouselIndicators"></div>
+      </div>
+
+      <!-- Form Section: CPF & E-mail together -->
+      <form class="consult-form" id="consultForm" onsubmit="return false;">
+        
+        <!-- Field 1: CPF -->
+        <div class="form-group">
+          <label for="cpfInput" class="form-label" style="display: none;">
+            Qual o CPF do titular cadastrado na plataforma <span class="required-star">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input 
+              type="tel" 
+              id="cpfInput" 
+              name="cpf" 
+              class="form-input" 
+              placeholder="000.000.000-00" 
+              maxlength="14"
+              inputmode="numeric"
+              autocomplete="off"
+            >
+            <div class="input-loading-spinner" id="cpfLoadingSpinner"></div>
+          </div>
+          <span class="input-error-msg" id="cpfError">Por favor, insira um CPF válido com 11 dígitos.</span>
+
+          <!-- Auto-fetched Name Box (Clean & Non-Editable) -->
+          <div class="auto-name-box hidden" id="autoNameBox">
+            <div class="name-box-badge">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="#4ade80" stroke-width="2.5" fill="none">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Nome Localizado na Receita Federal</span>
+            </div>
+            <div class="name-display-view">
+              <span class="name-label">Titular Identificado:</span>
+              <span class="name-val" id="fetchedFullName">---</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Field 2: E-mail -->
+        <div class="form-group">
+          <label for="emailInput" class="form-label" style="display: none;">
+            Qual o e-mail de cadastro ultilizado na plataforma <span class="required-star">*</span>
+          </label>
+          <input 
+            type="email" 
+            id="emailInput" 
+            name="email" 
+            class="form-input" 
+            placeholder="Digite aqui seu e-mail..." 
+            autocomplete="email"
+          >
+          <span class="input-error-msg" id="emailError">Por favor, insira um e-mail válido.</span>
+        </div>
+
+        <!-- Action Button (Disabled/Gray until CPF name is confirmed) -->
+        <button type="submit" class="submit-btn disabled" id="submitBtn" disabled>
+          <span class="btn-text" id="btnText">AGUARDANDO IDENTIFICAÇÃO...</span>
+          <div class="btn-spinner" id="btnSpinner"></div>
+        </button>
+      </form>
+
+      <div class="decisions-section">
+        <p>Tribunais de todo o país têm reconhecido a nulidade de apostas e determinado a devolução de valores. Decisões recentes:</p>
+        <ul>
+          <li><b>TJDFT</b> anulou apostas e condenou a Betano Brazil a devolver um valor de R$ 18.963.232,12 a consumidores Brasileiros.</li>
+          <li><b>A Justiça de São Paulo</b> condenou a Superbet a devolver mais de R$ 43.565.153,92 aos usuários apostadores.</li>
+          <li><b>3ª Vara Cível de Brasília</b> declarou nulas apostas e determinou devolução de R$ 44 mil a um consumidor ludopata.</li>
+          <li>Dentre outras diversas casas de apostas...</li>
+        </ul>
+      </div>
+
+
+    </main>
+  </div>
+  
+  <script src="script.js"></script>
+</body>
+</html>

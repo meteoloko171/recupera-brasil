@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" width="100%" height="100%">
+  <!-- Betano Official Emblem -->
+  <g transform="translate(4, 2)">
+    <!-- Outer metallic ring -->
+    <circle cx="22" cy="22" r="20" fill="url(#metalGrad)" stroke="#ffb199" stroke-width="1.5"/>
+    <!-- Inner orange circle -->
+    <circle cx="22" cy="22" r="14" fill="#f05a28"/>
+    <!-- Stylized B icon inside -->
+    <path d="M17 14 H23 C26.5 14 28 16 28 18.5 C28 20.2 26.8 21.5 24.8 21.8 C27.2 22.2 28.5 23.8 28.5 26 C28.5 28.8 26.5 30.5 22.8 30.5 H17 Z M20.8 17.5 V21 H22.8 C24.2 21 24.8 20.2 24.8 19.2 C24.8 18.2 24.2 17.5 22.8 17.5 Z M20.8 23.5 V27.2 H23.2 C24.6 27.2 25.4 26.4 25.4 25.3 C25.4 24.2 24.6 23.5 23.2 23.5 Z" fill="#ffffff"/>
+  </g>
+  
+  <!-- BETANO Text Typography -->
+  <g transform="translate(56, 32)">
+    <text x="0" y="0" fill="#ffffff" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="900" font-style="italic" font-size="23" letter-spacing="1.2">BETANO</text>
+  </g>
+
+  <defs>
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#e0e0e0"/>
+      <stop offset="70%" stop-color="#999999"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+</svg>

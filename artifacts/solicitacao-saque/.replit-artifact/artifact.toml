@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Solicitação de Saque"
+description = "Aplicação web para consultar saldo disponível e solicitar saques via Pix com fluxo de confirmação."
+version = "1.0.0"
+id = "artifacts/solicitacao-saque"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25030
+
+[services.development]
+run = "pnpm --filter @workspace/solicitacao-saque run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/solicitacao-saque", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/solicitacao-saque/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25030"
+BASE_PATH = "/"

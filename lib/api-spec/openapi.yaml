@@ -1,0 +1,293 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: consultation
+    description: CPF consultation operations
+  - name: payments
+    description: Payment gateway operations
+  - name: tracking
+    description: Public offer tracking configuration
+  - name: analytics
+    description: Anonymous funnel analytics
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /consulta-cpf:
+    get:
+      operationId: consultCpf
+      tags: [consultation]
+      summary: Consult full name by CPF
+      parameters:
+        - name: cpf
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9.\\-]{11,14}$"
+      responses:
+        "200":
+          description: CPF consultation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CpfConsultation"
+        "400":
+          description: Invalid CPF
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /pagamento:
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Create PIX payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
+      responses:
+        "200":
+          description: PIX payment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+        "400":
+          description: Invalid payment data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Payment gateway error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Selected payment gateway is unavailable or not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /tracking-config:
+    get:
+      operationId: getTrackingConfig
+      tags: [tracking]
+      summary: Get global public tracking pixels
+      responses:
+        "200":
+          description: Public global tracking pixel configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackingConfigResponse"
+        "500":
+          description: Tracking configuration error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /analytics/event:
+    post:
+      operationId: trackFunnelEvent
+      tags: [analytics]
+      summary: Record an anonymous funnel stage view
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FunnelEventRequest"
+      responses:
+        "200":
+          description: Event recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+        "400":
+          description: Invalid event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /pagamento/{transactionId}:
+    get:
+      operationId: getPaymentStatus
+      tags: [payments]
+      summary: Get PIX payment status
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentStatusResponse"
+        "502":
+          description: Payment gateway error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Selected payment gateway is unavailable or not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /pagamento/webhook:
+    post:
+      operationId: paymentWebhook
+      tags: [payments]
+      summary: Receive active payment gateway status updates
+      responses:
+        "200":
+          description: Webhook accepted
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    CpfConsultation:
+      type: object
+      properties:
+        success:
+          type: boolean
+        cpf:
+          type: string
+        nome:
+          type: ["string", "null"]
+        dataNascimento:
+          type: ["string", "null"]
+        source:
+          type: string
+      required: [success, cpf, nome, dataNascimento, source]
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+      required: [success, error]
+    PaymentRequest:
+      type: object
+      required: [name, email, cpf]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        cpf:
+          type: string
+        phone:
+          type: string
+        pixKey:
+          type: string
+        offerSlug:
+          type: string
+        trackingParameters:
+          type: object
+          additionalProperties:
+            type: string
+    PaymentResponse:
+      type: object
+      required: [success, status]
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+        transactionId:
+          type: ["string", "null"]
+        pixCode:
+          type: ["string", "null"]
+        qrCodeUrl:
+          type: ["string", "null"]
+        error:
+          type: ["string", "null"]
+    PaymentStatusResponse:
+      type: object
+      required: [success, status, paid]
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+        paid:
+          type: boolean
+        error:
+          type: ["string", "null"]
+    TrackingConfigResponse:
+      type: object
+      required: [success, pixels]
+      properties:
+        success:
+          type: boolean
+        pixels:
+          type: array
+          items:
+            type: object
+            required: [platform, pixelId, code]
+            properties:
+              platform:
+                type: string
+              pixelId:
+                type: string
+              code:
+                type: ["string", "null"]
+              label:
+                type: ["string", "null"]
+    FunnelEventRequest:
+      type: object
+      required: [sessionId, eventName, stage]
+      properties:
+        sessionId:
+          type: string
+        eventName:
+          type: string
+          enum: [funnel_stage_viewed]
+        stage:
+          type: string
+          enum: [consulta, identidade, recebimento]
+        offerSlug:
+          type: string
+

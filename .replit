@@ -1,0 +1,42 @@
+modules = ["nodejs-24", "python-base-3.13", "postgresql-16"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+BLACKCAT_POSTBACK_URL = "https://recuperabrasil.replit.app/api/pagamento/webhook"
+FREEPAY_POSTBACK_URL = "https://recuperabrasil.replit.app/api/pagamento/webhook"
+VITE_TIKTOK_PIXEL_ID = "DA7O0LRC77U9ESU0D1J0"
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
+localPort = 25030
+externalPort = 80

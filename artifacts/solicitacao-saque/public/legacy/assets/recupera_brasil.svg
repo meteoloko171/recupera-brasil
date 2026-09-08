@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 180" width="100%" height="100%">
+  <defs>
+    <!-- Smooth drop shadows for crisp rendering -->
+    <filter id="softLogoShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#002b66" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#softLogoShadow)">
+    <!-- ===================================================
+         BRAZILIAN ICON 'R' (Left)
+         =================================================== -->
+    <g transform="translate(15, 15)">
+      <!-- Top Green Curve of 'R' -->
+      <path d="M 20 20 
+               C 20 20, 75 20, 100 20 
+               C 125 20, 145 40, 145 65 
+               C 145 90, 125 110, 100 110 
+               C 85 110, 75 105, 65 95 
+               C 70 85, 75 75, 75 65 
+               C 75 50, 65 40, 50 40 
+               C 40 40, 30 45, 20 55 
+               Z" 
+            fill="#009e4f"/>
+
+      <!-- Yellow / Gold Dynamic Ribbon Wave -->
+      <path d="M 20 55 
+               C 35 45, 55 45, 70 55 
+               C 60 70, 45 80, 20 85 
+               C 15 105, 35 125, 60 135 
+               L 145 145 
+               C 120 130, 95 110, 85 95 
+               C 95 90, 105 80, 110 70 
+               C 105 85, 90 100, 70 105 
+               Z" 
+            fill="#ffc700"/>
+
+      <!-- Lower Green Base Curve / Leg of 'R' -->
+      <path d="M 15 125 
+               C 15 110, 25 95, 45 90 
+               C 60 110, 85 125, 115 135 
+               L 125 145 
+               L 45 145 
+               C 25 145, 15 138, 15 125 Z" 
+            fill="#009e4f"/>
+
+      <!-- Blue Celestial Circle / Dot inside 'R' -->
+      <circle cx="92" cy="65" r="26" fill="#002776"/>
+    </g>
+
+    <!-- ===================================================
+         TYPOGRAPHY (Right)
+         =================================================== -->
+    <g transform="translate(180, 20)">
+      <!-- 'RECUPERA' in Deep Navy Blue -->
+      <text x="0" y="52" 
+            font-family="'Plus Jakarta Sans', 'Inter', 'Montserrat', Arial, sans-serif" 
+            font-size="44" 
+            font-weight="900" 
+            letter-spacing="1px" 
+            fill="#002b66">RECUPERA</text>
+
+      <!-- 'BRASIL' in Brazilian Emerald Green -->
+      <text x="0" y="112" 
+            font-family="'Plus Jakarta Sans', 'Inter', 'Montserrat', Arial, sans-serif" 
+            font-size="64" 
+            font-weight="900" 
+            letter-spacing="0.5px" 
+            fill="#009e4f">BRASIL</text>
+
+      <!-- Tri-color Underline (Green, Yellow, Blue) -->
+      <g transform="translate(0, 126)">
+        <!-- Green Bar (55%) -->
+        <rect x="0" y="0" width="140" height="6.5" rx="3" fill="#009e4f"/>
+        <!-- Yellow Bar (25%) -->
+        <rect x="145" y="0" width="70" height="6.5" rx="3" fill="#ffc700"/>
+        <!-- Blue Bar (20%) -->
+        <rect x="220" y="0" width="55" height="6.5" rx="3" fill="#002776"/>
+      </g>
+    </g>
+  </g>
+</svg>
