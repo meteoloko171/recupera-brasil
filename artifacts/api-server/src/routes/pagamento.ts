@@ -116,9 +116,8 @@ async function contextFor(transactionId: string): Promise<PaymentContext | undef
 }
 
 function fallbackWebhookUrl() {
-  return process.env.REPLIT_DEV_DOMAIN
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/pagamento/webhook`
-    : "";
+  const domain = process.env.REPLIT_DEV_DOMAIN || process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  return domain ? `https://${domain}/api/pagamento/webhook` : "";
 }
 
 function getWebhookUrl(gatewayKey: string) {

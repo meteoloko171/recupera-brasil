@@ -2,6 +2,7 @@
 
 # compiled output
 dist
+dist-vercel
 tmp
 out-tsc
 *.tsbuildinfo
@@ -47,3 +48,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+.vercel
+.env*
+
+# Claude Code local session state
+.claude/

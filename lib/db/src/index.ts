@@ -10,7 +10,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Serverless platforms (Vercel) spin up many short-lived function instances,
+// so each one should hold very few connections and rely on the database's
+// own pooler (e.g. Neon's pooled connection string) for fan-out. A
+// long-running server (Replit) can keep the default, larger pool.
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: process.env.VERCEL ? 1 : 10,
+});
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
