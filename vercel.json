@@ -3,12 +3,13 @@
   "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/solicitacao-saque run build && pnpm --filter @workspace/api-server run build:vercel",
   "outputDirectory": "artifacts/solicitacao-saque/dist/public",
   "functions": {
-    "api/[...path].js": {
+    "api/index.js": {
       "memory": 1024,
       "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
