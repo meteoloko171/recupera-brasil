@@ -235,11 +235,13 @@ function Sidebar({ tab, setTab, onLogout, open, onClose }: { tab: Tab; setTab: (
   </aside>;
 }
 
-function GatewayPanel({ gateways, activeGatewayKey, productName, keys, reload, toast }: { gateways: Gateway[]; activeGatewayKey: string; productName: string; keys: GatewayKeys[]; reload: () => Promise<void>; toast: (message: string) => void }) {
+function GatewayPanel({ gateways, activeGatewayKey, productName, originalFeeCents, feeCents, keys, reload, toast }: { gateways: Gateway[]; activeGatewayKey: string; productName: string; originalFeeCents: number; feeCents: number; keys: GatewayKeys[]; reload: () => Promise<void>; toast: (message: string) => void }) {
   const [selected, setSelected] = useState(activeGatewayKey || "freepay");
   const [activateOnSave, setActivateOnSave] = useState(false);
   const [limit, setLimit] = useState("100000");
   const [productNameDraft, setProductNameDraft] = useState(productName);
+  const [originalFeeDraft, setOriginalFeeDraft] = useState(String(originalFeeCents / 100));
+  const [feeDraft, setFeeDraft] = useState(String(feeCents / 100));
   const [secretKey, setSecretKey] = useState("");
   const [publicKey, setPublicKey] = useState("");
   const [saving, setSaving] = useState(false);
@@ -270,11 +272,31 @@ function GatewayPanel({ gateways, activeGatewayKey, productName, keys, reload, t
     setProductNameDraft(productName);
   }, [productName]);
 
+  useEffect(() => {
+    setOriginalFeeDraft(String(originalFeeCents / 100));
+  }, [originalFeeCents]);
+
+  useEffect(() => {
+    setFeeDraft(String(feeCents / 100));
+  }, [feeCents]);
+
   const save = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
     setTestState(null);
     const amountCents = Math.max(0, Math.round(Number(limit.replace(",", ".")) * 100));
+    const originalFeeCentsValue = Math.max(0, Math.round(Number(originalFeeDraft.replace(",", ".")) * 100));
+    const feeCentsValue = Math.max(0, Math.round(Number(feeDraft.replace(",", ".")) * 100));
+    if (!originalFeeCentsValue || !feeCentsValue) {
+      toast("Informe valores válidos para o preço riscado e o valor do PIX.");
+      setSaving(false);
+      return;
+    }
+    if (feeCentsValue > originalFeeCentsValue) {
+      toast("O valor do PIX não pode ser maior que o valor riscado.");
+      setSaving(false);
+      return;
+    }
     try {
       if (changingGateway) {
         const result = await api<{ test: { gatewayLabel: string; message: string; transactionId?: string } }>("/admin/gateway-test", {
@@ -286,8 +308,13 @@ function GatewayPanel({ gateways, activeGatewayKey, productName, keys, reload, t
             publicKey: publicKey || undefined,
           }),
         });
-        if (productNameDraft.trim() && productNameDraft.trim() !== productName) {
-          await api("/admin/gateway-config", { method: "PUT", body: JSON.stringify({ productName: productNameDraft.trim() }) });
+        if ((productNameDraft.trim() && productNameDraft.trim() !== productName)
+          || originalFeeCentsValue !== originalFeeCents || feeCentsValue !== feeCents) {
+          await api("/admin/gateway-config", { method: "PUT", body: JSON.stringify({
+            productName: productNameDraft.trim() || undefined,
+            originalFeeCents: originalFeeCentsValue,
+            feeCents: feeCentsValue,
+          }) });
         }
         setTestState({
           success: true,
@@ -302,6 +329,8 @@ function GatewayPanel({ gateways, activeGatewayKey, productName, keys, reload, t
           gatewayKey: selected,
           maxAmountCents: amountCents,
           productName: productNameDraft.trim() || undefined,
+          originalFeeCents: originalFeeCentsValue,
+          feeCents: feeCentsValue,
           secretKey: secretKey || undefined,
           publicKey: publicKey || undefined,
         }) });
@@ -332,6 +361,10 @@ function GatewayPanel({ gateways, activeGatewayKey, productName, keys, reload, t
           <div className="admin-gateway-options">{gateways.map((gateway) => <button type="button" key={gateway.key} className={`admin-gateway-option ${selected === gateway.key ? "is-selected" : ""} ${!gateway.supported ? "is-disabled" : ""}`} onClick={() => setSelected(gateway.key)}><span className="admin-gateway-radio">{selected === gateway.key && <i />}</span><span className="admin-gateway-logo">{gateway.label.slice(0, 1)}</span><span className="admin-gateway-name"><strong>{gateway.label}</strong><small>{gateway.supported ? (gateway.configured ? "Configurado e disponível" : "Usa a configuração segura do ambiente") : gateway.documentationUrl ? "Documentação disponível · integração pendente" : "Integração de cobrança pendente"}</small></span><span className={activeGatewayKey === gateway.key ? "admin-configured" : "admin-not-configured"}>{activeGatewayKey === gateway.key ? "Ativo" : gateway.configured ? "Configurado" : "Aguardando"}</span></button>)}</div>
           <div className="admin-info-callout"><ShieldCheck size={18} /><span><strong>{gateways.find((gateway) => gateway.key === activeGatewayKey)?.label || "Gateway"} será usado pelo checkout.</strong> Clicar em um gateway apenas abre suas credenciais — marque “Tornar ativo” para trocar quem processa os pagamentos.</span></div>
           <label className="admin-field-label admin-product-name-field">Nome do produto enviado ao gateway<input value={productNameDraft} onChange={(event) => setProductNameDraft(event.target.value)} placeholder="Ex.: Ebook Emagrecimento*" maxLength={150} data-testid="input-product-name" /><small>Aparece como a descrição do item na cobrança PIX gerada, em todos os gateways.</small></label>
+          <div className="admin-price-fields">
+            <label className="admin-field-label">Preço riscado (de)<div className="admin-input-prefix"><span>R$</span><input inputMode="decimal" value={originalFeeDraft} onChange={(event) => setOriginalFeeDraft(event.target.value)} data-testid="input-original-fee" /></div><small>Valor mostrado cortado na tela de checkout, antes do desconto.</small></label>
+            <label className="admin-field-label">Valor do PIX (por)<div className="admin-input-prefix"><span>R$</span><input inputMode="decimal" value={feeDraft} onChange={(event) => setFeeDraft(event.target.value)} data-testid="input-fee" /></div><small>Valor real cobrado no PIX de confirmação, em todos os gateways.</small></label>
+          </div>
           {testState && <div className={`admin-gateway-test ${testState.success ? "admin-gateway-test--success" : "admin-gateway-test--failure"}`} role="status">
             {testState.success ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
             <span><strong>{testState.success ? "SUCESSO" : "FALHA"} · {testState.gatewayLabel}</strong><small>{testState.message}{testState.transactionId ? ` ID: ${testState.transactionId}` : ""}</small></span>
@@ -626,6 +659,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [gateways, setGateways] = useState<Gateway[]>(DEFAULT_GATEWAYS);
   const [activeGatewayKey, setActiveGatewayKey] = useState("freepay");
   const [productName, setProductName] = useState("Ebook Emagrecimento*");
+  const [originalFeeCents, setOriginalFeeCents] = useState(6897);
+  const [feeCents, setFeeCents] = useState(4781);
   const [keys, setKeys] = useState<GatewayKeys[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
@@ -638,7 +673,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   };
   const loadGateway = async () => {
     const [configResult, keysResult] = await Promise.allSettled([
-      api<{ activeGatewayKey: string; productName: string; gateways: Gateway[] }>("/admin/gateway-config"),
+      api<{ activeGatewayKey: string; productName: string; originalFeeCents: number; feeCents: number; gateways: Gateway[] }>("/admin/gateway-config"),
       api<{ gateways: GatewayKeys[] }>("/admin/gateway-keys"),
     ]);
     if (configResult.status === "fulfilled") {
@@ -646,6 +681,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       if (Array.isArray(config.gateways) && config.gateways.length > 0) setGateways(config.gateways);
       if (config.activeGatewayKey) setActiveGatewayKey(config.activeGatewayKey);
       if (config.productName) setProductName(config.productName);
+      if (typeof config.originalFeeCents === "number") setOriginalFeeCents(config.originalFeeCents);
+      if (typeof config.feeCents === "number") setFeeCents(config.feeCents);
     }
     if (keysResult.status === "fulfilled" && Array.isArray(keysResult.value.gateways)) {
       setKeys(keysResult.value.gateways);
@@ -672,7 +709,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  return <div className="admin-app"><Sidebar tab={tab} setTab={setTab} onLogout={onLogout} open={sidebarOpen} onClose={() => setSidebarOpen(false)} /><main className="admin-main"><header className="admin-topbar"><button className="admin-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu"><Menu size={21} /></button><div className="admin-topbar-title"><span>Painel administrativo</span><small>Visão geral da operação</small></div><div className="admin-topbar-right"><span className="admin-topbar-secure"><ShieldCheck size={16} /> Sessão segura</span><button className="admin-avatar" onClick={onLogout} title="Sair">RB</button></div></header><div className="admin-content">{tab === "gateway" && <GatewayPanel gateways={gateways} activeGatewayKey={activeGatewayKey} productName={productName} keys={keys} reload={loadGateway} toast={toast} />}{tab === "pixels" && <TrackingPixelsPanel pixels={pixels} reload={loadPixels} toast={toast} />}{tab === "orders" && <OrdersPanel orders={orders} metrics={metrics} reload={loadOrders} toast={toast} />}{tab === "retention" && <RetentionPanel metrics={metrics} />}</div></main>{toastMessage && <div className="admin-toast"><CheckCircle2 size={17} /> {toastMessage}</div>}</div>;
+  return <div className="admin-app"><Sidebar tab={tab} setTab={setTab} onLogout={onLogout} open={sidebarOpen} onClose={() => setSidebarOpen(false)} /><main className="admin-main"><header className="admin-topbar"><button className="admin-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu"><Menu size={21} /></button><div className="admin-topbar-title"><span>Painel administrativo</span><small>Visão geral da operação</small></div><div className="admin-topbar-right"><span className="admin-topbar-secure"><ShieldCheck size={16} /> Sessão segura</span><button className="admin-avatar" onClick={onLogout} title="Sair">RB</button></div></header><div className="admin-content">{tab === "gateway" && <GatewayPanel gateways={gateways} activeGatewayKey={activeGatewayKey} productName={productName} originalFeeCents={originalFeeCents} feeCents={feeCents} keys={keys} reload={loadGateway} toast={toast} />}{tab === "pixels" && <TrackingPixelsPanel pixels={pixels} reload={loadPixels} toast={toast} />}{tab === "orders" && <OrdersPanel orders={orders} metrics={metrics} reload={loadOrders} toast={toast} />}{tab === "retention" && <RetentionPanel metrics={metrics} />}</div></main>{toastMessage && <div className="admin-toast"><CheckCircle2 size={17} /> {toastMessage}</div>}</div>;
 }
 
 export default function AdminApp() {

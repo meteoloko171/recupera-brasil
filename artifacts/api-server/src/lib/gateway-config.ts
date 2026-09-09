@@ -73,6 +73,8 @@ export async function updateGatewaySettings(input: {
   gatewayKey?: string;
   activeGatewayKey?: string;
   productName?: string;
+  originalFeeCents?: number;
+  feeCents?: number;
   secretKey?: string;
   publicKey?: string;
   maxAmountCents?: number;
@@ -87,6 +89,16 @@ export async function updateGatewaySettings(input: {
   }
   if (typeof input.productName === "string" && input.productName.trim()) {
     await db.update(adminSettingsTable).set({ productName: input.productName.trim() }).where(eq(adminSettingsTable.id, 1));
+  }
+  const settingsUpdates: Record<string, number> = {};
+  if (typeof input.originalFeeCents === "number" && Number.isFinite(input.originalFeeCents) && input.originalFeeCents > 0) {
+    settingsUpdates.originalFeeCents = Math.round(input.originalFeeCents);
+  }
+  if (typeof input.feeCents === "number" && Number.isFinite(input.feeCents) && input.feeCents > 0) {
+    settingsUpdates.feeCents = Math.round(input.feeCents);
+  }
+  if (Object.keys(settingsUpdates).length > 0) {
+    await db.update(adminSettingsTable).set(settingsUpdates).where(eq(adminSettingsTable.id, 1));
   }
   if (!gatewayKey || !GATEWAYS.some((gateway) => gateway.key === gatewayKey)) return;
   const updates: Record<string, unknown> = {};

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createPayment, getConsultCpfQueryKey, getPaymentStatus, useConsultCpf } from '@workspace/api-client-react';
 import QRCode from 'qrcode';
@@ -37,13 +37,56 @@ const queryClient = new QueryClient();
 type Stage = 'landing' | 'intro' | 'scanning' | 'quiz' | 'analyzing' | 'result' | 'verification' | 'checkout' | 'success';
 type PixType = 'cpf' | 'celular' | 'email' | 'aleatoria';
 
+const AMOUNT_VALUE = 5433.54;
 const AMOUNT = 'R$ 5.433,54';
-const ORIGINAL_FEE = 'R$ 31,49';
-const PIX_DISCOUNT = 'R$ 1,57';
-const FEE = 'R$ 29,92';
-const FEE_VALUE = 29.92;
-const TOTAL = 'R$ 5.463,46';
 const defaultName = 'Titular identificado';
+
+// The confirmation fee (struck-through "original" price and the actual PIX
+// amount) is configurable from the admin panel (Gateway tab). These are only
+// the defaults shown before /api/offer-config responds, or if it fails.
+type OfferConfig = { productName: string; originalFeeCents: number; feeCents: number };
+const DEFAULT_OFFER_CONFIG: OfferConfig = { productName: 'Ebook Emagrecimento*', originalFeeCents: 6897, feeCents: 4781 };
+const OfferConfigContext = createContext<OfferConfig>(DEFAULT_OFFER_CONFIG);
+
+function formatBRL(cents: number) {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function OfferConfigProvider({ children }: { children: ReactNode }) {
+  const [config, setConfig] = useState<OfferConfig>(DEFAULT_OFFER_CONFIG);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/offer-config')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: Partial<OfferConfig> & { success?: boolean } | null) => {
+        if (cancelled || !data?.success) return;
+        setConfig({
+          productName: typeof data.productName === 'string' ? data.productName : DEFAULT_OFFER_CONFIG.productName,
+          originalFeeCents: typeof data.originalFeeCents === 'number' ? data.originalFeeCents : DEFAULT_OFFER_CONFIG.originalFeeCents,
+          feeCents: typeof data.feeCents === 'number' ? data.feeCents : DEFAULT_OFFER_CONFIG.feeCents,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return <OfferConfigContext.Provider value={config}>{children}</OfferConfigContext.Provider>;
+}
+
+function useOfferConfig() {
+  const config = useContext(OfferConfigContext);
+  const feeValue = config.feeCents / 100;
+  const discountCents = Math.max(0, config.originalFeeCents - config.feeCents);
+  const discountPercent = config.originalFeeCents > 0 ? Math.round((discountCents / config.originalFeeCents) * 100) : 0;
+  return {
+    productName: config.productName,
+    fee: formatBRL(config.feeCents),
+    feeValue,
+    originalFee: formatBRL(config.originalFeeCents),
+    pixDiscount: formatBRL(discountCents),
+    discountPercent,
+    total: formatBRL(Math.round(AMOUNT_VALUE * 100) + config.feeCents),
+  };
+}
 const ELIGIBILITY_QUESTIONS = [
   {
     text: 'Você já apostou dinheiro em alguma casa de apostas online (Bet, Esportiva, Cassino virtual)?',
@@ -532,6 +575,7 @@ function PixKeyModal({
 }
 
 function VerificationStage({ name, cpf, pixKey, onContinue, onBack }: { name: string; cpf: string; pixKey: string; onContinue: () => void; onBack: () => void }) {
+  const { fee, total } = useOfferConfig();
   return (
     <>
       <header className="compact-header compact-header--spaced">
@@ -542,7 +586,7 @@ function VerificationStage({ name, cpf, pixKey, onContinue, onBack }: { name: st
         <span className="alert-mark">!</span>
         <div>
           <strong>Taxa de confirmação 100% reembolsável</strong>
-          <p>Os {FEE} serão devolvidos integralmente junto com o saque. Você não perde esse valor.</p>
+          <p>Os {fee} serão devolvidos integralmente junto com o saque. Você não perde esse valor.</p>
         </div>
       </section>
       <p className="verification-copy">
@@ -556,15 +600,15 @@ function VerificationStage({ name, cpf, pixKey, onContinue, onBack }: { name: st
       </section>
       <section className="score-notice">
         <Info size={18} />
-        <p><strong>Reembolso integral garantido:</strong> após a validação, os <strong>{FEE} retornam junto com o saque</strong> para a mesma conta PIX informada.</p>
+        <p><strong>Reembolso integral garantido:</strong> após a validação, os <strong>{fee} retornam junto com o saque</strong> para a mesma conta PIX informada.</p>
       </section>
       <section className="totals-card">
         <div><span>Valor do saque</span><strong>{AMOUNT}</strong></div>
-        <div><span>(+) Reembolso integral da taxa (100%)</span><strong className="green">{FEE}</strong></div>
-        <div className="total-row"><span>Total consolidado a receber</span><strong>{TOTAL}</strong></div>
+        <div><span>(+) Reembolso integral da taxa (100%)</span><strong className="green">{fee}</strong></div>
+        <div className="total-row"><span>Total consolidado a receber</span><strong>{total}</strong></div>
       </section>
       <p className="reimbursement-note">
-        <strong>Você receberá tudo de volta:</strong> {AMOUNT} do saque + {FEE} da confirmação = <strong>{TOTAL} na sua conta PIX.</strong>
+        <strong>Você receberá tudo de volta:</strong> {AMOUNT} do saque + {fee} da confirmação = <strong>{total} na sua conta PIX.</strong>
       </p>
       <button type="button" className="primary-button primary-button--large" onClick={onContinue} data-testid="button-open-checkout">
         <span>Continuar para confirmação</span>
@@ -677,6 +721,7 @@ function CheckoutStage({
   const [pixCode, setPixCode] = useState(previewMode ? '00020126580014BR.GOV.BCB.PIX0136CODIGO-PIX-DE-VISUALIZACAO520400005303986540547.975802BR5925RECUPERA BRASIL6008BRASILIA62070503***6304ABCD' : '');
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState('');
+  const { fee, feeValue, originalFee, pixDiscount, total, discountPercent } = useOfferConfig();
 
   useEffect(() => {
     if (step !== 3) return;
@@ -690,11 +735,11 @@ function CheckoutStage({
       trackTikTokEvent('AddPaymentInfo', {
         content_name: 'Taxa de confirmação',
         content_type: 'product',
-        value: FEE_VALUE,
+        value: feeValue,
         currency: 'BRL',
       });
       trackMetaEvent('AddPaymentInfo', {
-        value: FEE_VALUE,
+        value: feeValue,
         currency: 'BRL',
       });
       setStep(2);
@@ -719,13 +764,13 @@ function CheckoutStage({
       setTransactionId(payment.transactionId);
       setSeconds(29 * 60 + 59);
       setStep(3);
-      trackEvent('pix_payment_created', { payment_method: 'pix', amount_brl: FEE_VALUE });
+      trackEvent('pix_payment_created', { payment_method: 'pix', amount_brl: feeValue });
       trackTikTokEvent('PlaceAnOrder', {
         content_name: 'Taxa de confirmação via PIX',
         content_type: 'product',
-        value: FEE_VALUE,
+        value: feeValue,
         currency: 'BRL',
-        contents: [{ content_id: 'taxa-confirmacao', content_name: 'Taxa de confirmação', quantity: 1, price: FEE_VALUE }],
+        contents: [{ content_id: 'taxa-confirmacao', content_name: 'Taxa de confirmação', quantity: 1, price: feeValue }],
       });
     } catch (error) {
       setPaymentError(error instanceof Error ? error.message : 'Não foi possível gerar o pagamento.');
@@ -741,13 +786,13 @@ function CheckoutStage({
     try {
       const payment = await getPaymentStatus(transactionId);
       if (payment.paid) {
-        trackEvent('payment_confirmed', { payment_method: 'pix', amount_brl: FEE_VALUE });
+        trackEvent('payment_confirmed', { payment_method: 'pix', amount_brl: feeValue });
         trackTikTokEvent('CompletePayment', {
           content_name: 'Taxa de confirmação via PIX',
           content_type: 'product',
-          value: FEE_VALUE,
+          value: feeValue,
           currency: 'BRL',
-          contents: [{ content_id: 'taxa-confirmacao', content_name: 'Taxa de confirmação', quantity: 1, price: FEE_VALUE }],
+          contents: [{ content_id: 'taxa-confirmacao', content_name: 'Taxa de confirmação', quantity: 1, price: feeValue }],
         });
         onSuccess();
         return;
@@ -800,7 +845,7 @@ function CheckoutStage({
         <section className="checkout-product">
           <div className="product-mark"><img src="/legacy/logorecuperabrasil/recuperasemfundo.png" alt="Recupera Brasil" /></div>
           <div><p>Taxa de confirmação</p><span>100% reembolsada com o saque</span></div>
-          <div className="checkout-product-price"><del>{ORIGINAL_FEE}</del><strong>{FEE}</strong><small>5% OFF no PIX</small></div>
+          <div className="checkout-product-price"><del>{originalFee}</del><strong>{fee}</strong><small>{discountPercent}% OFF no PIX</small></div>
         </section>
         {step < 3 && (
           <div className="checkout-steps" data-testid="progress-checkout">
@@ -818,7 +863,7 @@ function CheckoutStage({
             <div className="field-group"><label htmlFor="checkoutName">Nome completo do titular</label><input id="checkoutName" className="plain-input" value={checkoutName} onChange={(event) => setCheckoutName(event.target.value)} data-testid="input-checkout-name" /></div>
             <div className="field-group"><label htmlFor="checkoutCpf">CPF do responsável</label><input id="checkoutCpf" className="plain-input" inputMode="numeric" value={checkoutCpf} onChange={(event) => setCheckoutCpf(formatCpf(event.target.value))} data-testid="input-checkout-cpf" /></div>
             <div className="field-group"><label htmlFor="checkoutPhone">Telefone com DDD</label><input id="checkoutPhone" className="plain-input" type="tel" inputMode="tel" placeholder="(00) 00000-0000" value={checkoutPhone} onChange={(event) => setCheckoutPhone(event.target.value)} data-testid="input-checkout-phone" /></div>
-            <div className="protected-list"><strong><LockKeyhole size={16} /> Ambiente de dados protegido</strong><span><Check size={15} /> Confirmação imediata do pagamento</span><span><Check size={15} /> Dados criptografados durante o processo</span><span><Check size={15} /> Os {FEE} são 100% devolvidos com o saque</span></div>
+            <div className="protected-list"><strong><LockKeyhole size={16} /> Ambiente de dados protegido</strong><span><Check size={15} /> Confirmação imediata do pagamento</span><span><Check size={15} /> Dados criptografados durante o processo</span><span><Check size={15} /> Os {fee} são 100% devolvidos com o saque</span></div>
             <button type="button" className="primary-button" onClick={goToPayment} disabled={!checkoutName.trim() || !validEmail(checkoutEmail) || checkoutCpf.replace(/\D/g, '').length !== 11 || checkoutPhone.replace(/\D/g, '').length < 10} data-testid="button-go-to-payment"><span>Ir para pagamento</span><ArrowRight size={18} /></button>
           </section>
         )}
@@ -827,18 +872,18 @@ function CheckoutStage({
             <div className="checkout-box-heading"><span>02</span><div><p className="eyebrow">FORMA DE PAGAMENTO</p><h2>Confirmação via PIX</h2></div></div>
             <div className="checkout-refund-notice">
               <CheckCircle2 size={20} />
-              <p><strong>Este valor não é perdido.</strong> Os {FEE} pagos na confirmação serão devolvidos integralmente junto com o saque.</p>
+              <p><strong>Este valor não é perdido.</strong> Os {fee} pagos na confirmação serão devolvidos integralmente junto com o saque.</p>
             </div>
-            <div className="pix-choice"><div className="pix-logo"><img src="/legacy/logopix/logopix.png" alt="PIX" /></div><div><strong>PIX</strong><span>Pagamento instantâneo e seguro</span></div><b className="pix-discount-badge">5% OFF</b><CheckCircle2 size={20} /></div>
+            <div className="pix-choice"><div className="pix-logo"><img src="/legacy/logopix/logopix.png" alt="PIX" /></div><div><strong>PIX</strong><span>Pagamento instantâneo e seguro</span></div><b className="pix-discount-badge">{discountPercent}% OFF</b><CheckCircle2 size={20} /></div>
             <div className="checkout-summary">
-              <div><span>Valor original</span><strong className="checkout-original-value">{ORIGINAL_FEE}</strong></div>
-              <div><span>Desconto de 5% no PIX</span><strong className="checkout-discount-value">− {PIX_DISCOUNT}</strong></div>
-              <div><span>Total a pagar no PIX</span><strong>{FEE}</strong></div>
-              <div><span>Reembolso da taxa</span><strong className="checkout-refund-value">100% · {FEE}</strong></div>
+              <div><span>Valor original</span><strong className="checkout-original-value">{originalFee}</strong></div>
+              <div><span>Desconto de {discountPercent}% no PIX</span><strong className="checkout-discount-value">− {pixDiscount}</strong></div>
+              <div><span>Total a pagar no PIX</span><strong>{fee}</strong></div>
+              <div><span>Reembolso da taxa</span><strong className="checkout-refund-value">100% · {fee}</strong></div>
               <div><span>Chave que receberá o total</span><strong>{pixKey}</strong></div>
-              <div className="checkout-summary-total"><span>Total a receber após validação</span><strong>{TOTAL}</strong></div>
+              <div className="checkout-summary-total"><span>Total a receber após validação</span><strong>{total}</strong></div>
             </div>
-            <p className="checkout-refund-equation">{AMOUNT} do saque + {FEE} devolvidos = <strong>{TOTAL} na sua conta PIX</strong></p>
+            <p className="checkout-refund-equation">{AMOUNT} do saque + {fee} devolvidos = <strong>{total} na sua conta PIX</strong></p>
             <button type="button" className={`primary-button ${generating ? 'is-loading' : ''}`} onClick={generatePayment} disabled={generating} data-testid="button-generate-pix">
               {generating ? <><RefreshCw size={17} className="spin" /><span>Gerando PIX, aguarde...</span></> : <><span>Gerar pagamento</span><ArrowRight size={18} /></>}
             </button>
@@ -852,10 +897,10 @@ function CheckoutStage({
             <div className="checkout-box-heading checkout-box-heading--center"><span className="success-number"><Check size={15} /></span><div><p className="eyebrow">PAGAMENTO PIX</p><h2>Escaneie para confirmar</h2></div></div>
             <div className="checkout-refund-notice checkout-refund-notice--compact">
               <CheckCircle2 size={19} />
-              <p><strong>Reembolso de 100%:</strong> após a confirmação, os {FEE} retornam junto com o saque, totalizando {TOTAL}.</p>
+              <p><strong>Reembolso de 100%:</strong> após a confirmação, os {fee} retornam junto com o saque, totalizando {total}.</p>
             </div>
             <div className="copy-pix-group">
-              <label htmlFor="pixCode">{copied ? 'Código PIX copiado' : `Copie o PIX de ${FEE} para pagar`}</label>
+              <label htmlFor="pixCode">{copied ? 'Código PIX copiado' : `Copie o PIX de ${fee} para pagar`}</label>
               <input
                 id="pixCode"
                 ref={pixCodeInputRef}
@@ -891,7 +936,7 @@ function CheckoutStage({
         <div className="mobile-copy-bar">
           <button type="button" onClick={copyPix} data-testid="button-copy-pix-sticky">
             <Copy size={20} />
-            <span>Copiar PIX — {FEE}</span>
+            <span>Copiar PIX — {fee}</span>
           </button>
         </div>
       )}
@@ -900,13 +945,14 @@ function CheckoutStage({
 }
 
 function SuccessStage({ name, onRestart }: { name: string; onRestart: () => void }) {
+  const { total } = useOfferConfig();
   return (
     <section className="success-stage" data-testid="status-payment-success">
       <div className="success-icon"><CheckCircle2 size={38} /></div>
       <p className="eyebrow">SOLICITAÇÃO CONFIRMADA</p>
       <h1>Pagamento recebido, {name.split(' ')[0]}.</h1>
       <p className="success-lead">Sua identidade e titularidade foram validadas com sucesso.</p>
-      <div className="success-details"><div><span>Status do saque</span><strong>Em processamento prioritário</strong></div><div><span>Valor total liberado</span><strong>{TOTAL}</strong></div><div><span>Prazo de depósito PIX</span><strong>Até 15 minutos</strong></div></div>
+      <div className="success-details"><div><span>Status do saque</span><strong>Em processamento prioritário</strong></div><div><span>Valor total liberado</span><strong>{total}</strong></div><div><span>Prazo de depósito PIX</span><strong>Até 15 minutos</strong></div></div>
       <div className="success-mail"><Mail size={18} /><span>O comprovante e a autorização de transferência serão enviados para o e-mail informado.</span></div>
       <button type="button" className="secondary-button" onClick={onRestart} data-testid="button-new-consultation"><Clipboard size={16} /> Iniciar nova consulta</button>
     </section>
@@ -1013,19 +1059,20 @@ function Home() {
     setStage('intro');
     setPixModalOpen(false);
   };
+  const { feeValue } = useOfferConfig();
   const openCheckout = () => {
     trackEvent('internal_checkout_started', {
       checkout_type: 'pix_internal',
-      amount_brl: FEE_VALUE,
+      amount_brl: feeValue,
     });
     trackTikTokEvent('InitiateCheckout', {
       content_name: 'Taxa de confirmação',
       content_type: 'product',
-      value: FEE_VALUE,
+      value: feeValue,
       currency: 'BRL',
     });
     trackMetaEvent('InitiateCheckout', {
-      value: FEE_VALUE,
+      value: feeValue,
       currency: 'BRL',
       content_name: 'Taxa de confirmação',
     });
@@ -1078,7 +1125,7 @@ function Home() {
 
 function Router() {
   const [location] = useLocation();
-  return <RoutedErrorBoundary resetKey={location}>{location.startsWith('/admin') ? <AdminApp /> : <Home />}</RoutedErrorBoundary>;
+  return <RoutedErrorBoundary resetKey={location}>{location.startsWith('/admin') ? <AdminApp /> : <OfferConfigProvider><Home /></OfferConfigProvider>}</RoutedErrorBoundary>;
 }
 
 function RoutedErrorBoundary({ children, resetKey }: { children: ReactNode; resetKey: string }) {

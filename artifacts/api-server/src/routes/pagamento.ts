@@ -22,7 +22,9 @@ const FREEPAY_URL = "https://api.freepaybrasil.com/v1/payment-transaction/create
 const FREEPAY_INFO_URL = "https://api.freepaybrasil.com/v1/payment-transaction/info";
 const BLACKCAT_URL = "https://api.blackcatoficial.com/api/sales/create-sale";
 const BLACKCAT_INFO_URL = "https://api.blackcatoficial.com/api/sales";
-const PAYMENT_AMOUNT_CENTS = 2992;
+// Fallback used only if admin settings can't be read (row should always
+// exist after ensureGatewayRows()). Keep in sync with the schema default.
+const DEFAULT_PAYMENT_AMOUNT_CENTS = 4781;
 const sentUtmifyNotifications = new Set<string>();
 
 type PaymentContext = {
@@ -167,6 +169,20 @@ router.get("/tracking-config", async (req, res) => {
   }
 });
 
+router.get("/offer-config", async (_req, res) => {
+  try {
+    const settings = await getAdminSettings();
+    return res.json({
+      success: true,
+      productName: settings?.productName || "Ebook Emagrecimento*",
+      originalFeeCents: settings?.originalFeeCents ?? 6897,
+      feeCents: settings?.feeCents ?? 4781,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Não foi possível carregar a configuração da oferta." });
+  }
+});
+
 router.post("/pagamento", async (req, res) => {
   const body = req.body as PaymentRequest;
   const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -182,6 +198,7 @@ router.post("/pagamento", async (req, res) => {
   try {
     const settings = await getAdminSettings();
     const productName = settings?.productName || "Ebook Emagrecimento*";
+    const amountCents = settings?.feeCents ?? DEFAULT_PAYMENT_AMOUNT_CENTS;
     const gatewayKey = settings?.activeGatewayKey || "freepay";
     const gateway = GATEWAYS.find((item) => item.key === gatewayKey);
     if (!gateway || !gateway.supported) {
@@ -201,7 +218,7 @@ router.post("/pagamento", async (req, res) => {
     const documentedGatewayKey = isDocumentedGatewayKey(gatewayKey) ? gatewayKey : null;
     const gatewayRequest = gatewayKey === "magicpay"
       ? buildMagicPayPaymentRequest({
-        amountCents: PAYMENT_AMOUNT_CENTS,
+        amountCents,
         description: productName,
         reference: gatewayReference,
         name,
@@ -212,13 +229,13 @@ router.post("/pagamento", async (req, res) => {
       })
       : gatewayKey === "blackcat"
       ? {
-        amount: PAYMENT_AMOUNT_CENTS,
+        amount: amountCents,
         currency: "BRL",
         paymentMethod: "pix",
         externalRef: `withdrawal-confirmation-${cpf}`,
         items: [{
           title: productName,
-          unitPrice: PAYMENT_AMOUNT_CENTS,
+          unitPrice: amountCents,
           quantity: 1,
           tangible: false,
         }],
@@ -235,7 +252,7 @@ router.post("/pagamento", async (req, res) => {
       }
       : gatewayKey === "freepay"
         ? {
-        amount: PAYMENT_AMOUNT_CENTS,
+        amount: amountCents,
         payment_method: "pix",
         postback_url: postbackUrl,
         customer: {
@@ -247,7 +264,7 @@ router.post("/pagamento", async (req, res) => {
         },
         items: [{
           title: productName,
-          unit_price: PAYMENT_AMOUNT_CENTS,
+          unit_price: amountCents,
           quantity: 1,
           tangible: false,
           external_ref: `confirmacao-${cpf}`,
@@ -261,7 +278,7 @@ router.post("/pagamento", async (req, res) => {
       }
         : documentedGatewayKey
           ? buildGatewayPaymentRequest({
-            amountCents: PAYMENT_AMOUNT_CENTS,
+            amountCents,
             description: productName,
             reference: gatewayReference,
             name,
@@ -342,7 +359,7 @@ router.post("/pagamento", async (req, res) => {
           gatewayTransactionId: transactionId,
           pixCode,
           qrCodeUrl,
-          amountCents: PAYMENT_AMOUNT_CENTS,
+          amountCents,
           customerName: name,
           customerEmail: email,
           customerPhone: phone,
@@ -371,7 +388,7 @@ router.post("/pagamento", async (req, res) => {
           event: normalizedStatus === "paid" ? "transaction.paid" : "transaction.created",
           transactionId,
           status: normalizedStatus === "paid" ? "PAID" : "PENDING",
-          amount: PAYMENT_AMOUNT_CENTS,
+          amount: amountCents,
           createdAt,
           paidAt: normalizedStatus === "paid" ? createdAt : undefined,
           customer: { name, email, phone, document: cpf },
@@ -392,7 +409,7 @@ router.post("/pagamento", async (req, res) => {
         email,
         phone,
         cpf,
-        amountCents: PAYMENT_AMOUNT_CENTS,
+        amountCents,
         sourceUrl: req.get("origin") || undefined,
       }).then((result) => {
         if (result.attempted) req.log.info({ transactionId, ...result }, "Server tracking event dispatched");
@@ -465,7 +482,7 @@ router.get("/pagamento/:transactionId", async (req, res) => {
           event: "transaction.paid",
           transactionId,
           status: "PAID",
-          amount: PAYMENT_AMOUNT_CENTS,
+          amount: order?.amountCents ?? DEFAULT_PAYMENT_AMOUNT_CENTS,
           createdAt: context.createdAt,
           paidAt: new Date().toISOString(),
           customer: { name: context.name, email: context.email, phone: context.phone, document: context.cpf },
@@ -484,7 +501,7 @@ router.get("/pagamento/:transactionId", async (req, res) => {
           email: context.email,
           phone: context.phone,
           cpf: context.cpf,
-          amountCents: PAYMENT_AMOUNT_CENTS,
+          amountCents: order?.amountCents ?? DEFAULT_PAYMENT_AMOUNT_CENTS,
         }).then((result) => {
           if (result.attempted) req.log.info({ transactionId, ...result }, "Server purchase tracking dispatched");
         }).catch((error) => req.log.warn({ err: error, transactionId }, "Server purchase tracking failed"));
@@ -537,7 +554,7 @@ router.post("/pagamento/webhook", async (req, res) => {
     createdAt: getString(payload, ["createdAt", "CreatedAt", "timestamp", "Timestamp"])
       ?? context?.createdAt
       ?? new Date().toISOString(),
-    amount: payload.amount ?? payload.Amount ?? PAYMENT_AMOUNT_CENTS,
+    amount: payload.amount ?? payload.Amount ?? order?.amountCents ?? DEFAULT_PAYMENT_AMOUNT_CENTS,
     fees: payload.fees ?? payload.Fees ?? 0,
     customer: payload.customer ?? (context ? {
       name: context.name,
@@ -566,7 +583,7 @@ router.post("/pagamento/webhook", async (req, res) => {
         email: context.email,
         phone: context.phone,
         cpf: context.cpf,
-        amountCents: PAYMENT_AMOUNT_CENTS,
+        amountCents: order?.amountCents ?? DEFAULT_PAYMENT_AMOUNT_CENTS,
       }).catch((error) => req.log.warn({ err: error, transactionId }, "Server webhook tracking failed"));
     }
     return res.json({ success: true, utmify: result });

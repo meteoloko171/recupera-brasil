@@ -180,6 +180,8 @@ router.get("/admin/gateway-config", async (_req, res) => {
   return res.json({
     activeGatewayKey: settings?.activeGatewayKey || "freepay",
     productName: settings?.productName || "Ebook Emagrecimento*",
+    originalFeeCents: settings?.originalFeeCents ?? 6897,
+    feeCents: settings?.feeCents ?? 4781,
     whatsappTemplate: settings?.whatsappTemplate || "",
     gateways: GATEWAYS.map((gateway) => {
       const config = configs.find((item) => item.gatewayKey === gateway.key);
@@ -260,6 +262,19 @@ router.put("/admin/gateway-config", async (req, res) => {
   if (productName && (productName.length < 2 || productName.length > 150)) {
     return res.status(400).json({ success: false, error: "O nome do produto deve ter entre 2 e 150 caracteres." });
   }
+  const originalFeeCentsRaw = req.body?.originalFeeCents;
+  const feeCentsRaw = req.body?.feeCents;
+  const originalFeeCents = originalFeeCentsRaw === undefined ? undefined : Number(originalFeeCentsRaw);
+  const feeCents = feeCentsRaw === undefined ? undefined : Number(feeCentsRaw);
+  if (originalFeeCents !== undefined && (!Number.isFinite(originalFeeCents) || originalFeeCents <= 0 || originalFeeCents > 100000000)) {
+    return res.status(400).json({ success: false, error: "O valor riscado (de) é inválido." });
+  }
+  if (feeCents !== undefined && (!Number.isFinite(feeCents) || feeCents <= 0 || feeCents > 100000000)) {
+    return res.status(400).json({ success: false, error: "O valor do PIX (por) é inválido." });
+  }
+  if (originalFeeCents !== undefined && feeCents !== undefined && feeCents > originalFeeCents) {
+    return res.status(400).json({ success: false, error: "O valor do PIX não pode ser maior que o valor riscado." });
+  }
   if ((activeGatewayKey && !GATEWAYS.some((gateway) => gateway.key === activeGatewayKey))
     || (gatewayKey && !GATEWAYS.some((gateway) => gateway.key === gatewayKey))) {
     return res.status(400).json({ success: false, error: "Gateway inválido." });
@@ -283,6 +298,8 @@ router.put("/admin/gateway-config", async (req, res) => {
     activeGatewayKey: activeGatewayKey || undefined,
     gatewayKey: gatewayKey || activeGatewayKey || undefined,
     productName: productName || undefined,
+    originalFeeCents,
+    feeCents,
     secretKey: asString(req.body?.secretKey) || undefined,
     publicKey: asString(req.body?.publicKey) || undefined,
     maxAmountCents: Number.isFinite(maxAmountCents) ? maxAmountCents : undefined,

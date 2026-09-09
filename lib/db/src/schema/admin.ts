@@ -6,6 +6,8 @@ export const adminSettingsTable = pgTable("admin_settings", {
   id: serial("id").primaryKey(),
   activeGatewayKey: text("active_gateway_key").notNull().default("freepay"),
   productName: text("product_name").notNull().default("Ebook Emagrecimento*"),
+  originalFeeCents: integer("original_fee_cents").notNull().default(6897),
+  feeCents: integer("fee_cents").notNull().default(4781),
   whatsappTemplate: text("whatsapp_template").notNull().default("Olá, {nome}! Vi que seu PIX de confirmação ainda está pendente. Posso te ajudar?"),
   trackingPixelsMigrated: boolean("tracking_pixels_migrated").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
