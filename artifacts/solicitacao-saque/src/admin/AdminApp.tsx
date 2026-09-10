@@ -692,20 +692,30 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   };
   const loadOrders = async () => {
-    const [orderResult, metricResult] = await Promise.all([
+    const [orderResult, metricResult] = await Promise.allSettled([
       api<{ orders: Order[] }>("/admin/orders"),
       api<{ metrics: Metrics }>("/admin/metrics"),
     ]);
-    setOrders(orderResult.orders);
-    setMetrics(metricResult.metrics);
+    // A malformed or unexpected response (e.g. the backend isn't fully
+    // configured yet) must never replace known-good state with garbage —
+    // that's what used to turn one flaky request into a blank crashed panel.
+    if (orderResult.status === "fulfilled" && Array.isArray(orderResult.value.orders)) {
+      setOrders(orderResult.value.orders);
+    }
+    if (metricResult.status === "fulfilled" && metricResult.value.metrics) {
+      setMetrics(metricResult.value.metrics);
+    }
+    if (orderResult.status === "rejected" && metricResult.status === "rejected") {
+      throw orderResult.reason;
+    }
   };
   const loadPixels = async () => {
     const result = await api<{ pixels: TrackingPixel[] }>("/admin/tracking-pixels");
-    setPixels(result.pixels);
+    if (Array.isArray(result.pixels)) setPixels(result.pixels);
   };
   useEffect(() => {
-    void Promise.all([loadGateway(), loadOrders(), loadPixels()]);
-    const timer = window.setInterval(() => void loadOrders(), 5000);
+    void Promise.allSettled([loadGateway(), loadOrders(), loadPixels()]);
+    const timer = window.setInterval(() => { void loadOrders().catch(() => undefined); }, 5000);
     return () => window.clearInterval(timer);
   }, []);
 
