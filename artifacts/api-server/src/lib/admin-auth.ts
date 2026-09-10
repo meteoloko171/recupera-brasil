@@ -18,15 +18,20 @@ function getCookie(req: Request, name: string) {
   return pair ? decodeURIComponent(pair.slice(name.length + 1)) : null;
 }
 
+// Default login, requested by the project owner so a fresh deploy works
+// with zero setup during this testing phase -- override with
+// ADMIN_USERNAME/ADMIN_PASSWORD env vars for a real deployment.
+const DEFAULT_ADMIN_USERNAME = "Vorcario.Dubai";
+const DEFAULT_ADMIN_PASSWORD = "Europa.Bigode";
+
 export function hasAdminCredentials() {
-  return Boolean(process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD);
+  return true;
 }
 
 export function checkAdminCredentials(username: string, password: string) {
-  const expectedUser = process.env.ADMIN_USERNAME;
-  const expectedPassword = process.env.ADMIN_PASSWORD;
-  if (!expectedUser || !expectedPassword || username !== expectedUser || password !== expectedPassword) return false;
-  return true;
+  const expectedUser = process.env.ADMIN_USERNAME || DEFAULT_ADMIN_USERNAME;
+  const expectedPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
+  return username === expectedUser && password === expectedPassword;
 }
 
 export function setAdminSession(res: Response) {
